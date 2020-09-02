@@ -1,5 +1,6 @@
 ## turtlebot3 Setup
-
+<b>Get files</b><br>
+Clone the relevant files from official repositories 
 ```bash
 git clone https://github.com/ROBOTIS-GIT/turtlebot3.git
 ```

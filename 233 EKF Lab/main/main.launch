@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+<!-- gazebo config -->
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="x_pos" default="0.0"/>
+  <arg name="y_pos" default="0.0"/>
+  <arg name="z_pos" default="0.0"/>
+
+<!-- launch empty gazebo world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/empty.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+<!-- push urdf to parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+<!-- spawn model as found on parameter server -->
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
+
+<!-- turtlebot3 teleop -->
+  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" launch-prefix="gnome-terminal --command">
+  </node>
+
+<!-- robot state publisher for rviz -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+    <!-- <param name="publish_frequency" type="double" value="50.0" /> -->
+  </node>
+
+<!-- 
+   joint state publisher 
+  Note: This conflicts with JointState messages 
+  gazebo publishes on the /joint_states topic  
+
+  Uncomment to see obvious flickering due to the conflict 
+  using rostopic echo /joint_states
+-->
+
+<!-- 
+  <node 
+  name="joint_state_publisher" 
+  pkg ="joint_state_publisher" 
+  type="joint_state_publisher">
+  <param 
+  name="use_gui" 
+  value="False"/>
+  </node>
+ -->
+<!-- start sensors -->
+  <!-- <include file="$(find turtlebot3_bringup)/launch/turtlebot3_rpicamera.launch" /> -->
+
+  <!-- <include file="$(find turtlebot3_bringup)/launch/turtlebot3_lidar.launch" /> -->
+
+  <!-- <include file="$(find turtlebot3_bringup)/launch/turtlebot3_realsense.launch" /> -->
+
+<!-- start kalman filtering  -->
+  <include file="$(find robot_pose_ekf)/robot_pose_ekf.launch" />
+
+<!-- plot trajectory of filter and unfiltered odom values -->
+  <include file="$(find odom_to_trajectory)/launch/create_trajectory.launch" />
+
+ <!-- launch rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find main)/ekfLab.rviz"/>
+
+</launch>

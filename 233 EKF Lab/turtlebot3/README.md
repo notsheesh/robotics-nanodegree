@@ -1,5 +1,6 @@
 ## turtlebot3 Setup
-
+<b>Get files</b><br>
+Clone the relevant files from official repositories 
 ```bash
 git clone https://github.com/ROBOTIS-GIT/turtlebot3.git
 ```
@@ -16,5 +17,8 @@ There are two kinds of model for Turtlebot3. If you don’t choose one of them, 
 
 ```bash
 echo "export TURTLEBOT3_MODEL=burger" >> ~/.bashrc
+```
+
+```bash
 source ~/.bashrc
 ```

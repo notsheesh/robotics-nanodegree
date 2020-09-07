@@ -54,7 +54,7 @@ tuple<MatrixXf, MatrixXf> kalman_filter(MatrixXf x, MatrixXf P, MatrixXf u, Matr
         P << (I - K * H) * P;
 
         // 2. State Prediction
-		MatrixXf x_dash(2, 1);
+	MatrixXf x_dash(2, 1);
         MatrixXf P_dash(2, 2);
 
         // Compute x and P

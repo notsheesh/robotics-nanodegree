@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!-- choose world -->
+  <arg name="which_world" value="jackal_race"/>
+  <include file="$(find udacity_bot)/launch/$(arg which_world).launch"/>
+
+  <!-- launch teleop node -->
+  <node 
+  	name="teleop_twist_keyboard" 
+  	pkg="teleop_twist_keyboard" 
+  	type="teleop_twist_keyboard.py" 
+  	output="screen"
+  	launch-prefix="gnome-terminal --command"
+  />
+  
+  <arg name="scan_topic" value="udacity_bot/laser/scan"/>
+  <arg name="base_link" value="robot_footprint" />
+  <node 
+  	name="slam_node" 
+  	pkg="gmapping" 
+  	type="slam_gmapping" 
+  	args="scan:=$(arg scan_topic) _base_frame:=$(arg base_link)" 
+  	respawn="false" 
+  	output="screen" />
+
+  <!-- init rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find teleop_mapping)/rviz/gmapping.rviz" />
+
+</launch>

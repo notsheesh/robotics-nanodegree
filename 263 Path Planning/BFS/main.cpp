@@ -1,17 +1,14 @@
 #include <iostream>
-#include <string.h>
 #include <vector>
+#include <string>
 #include <algorithm>
-#include<string>
 using namespace std;
 
 #define HEIGHT 5  			// row
 #define WIDTH 6   			// col
 #define START_X 0 			// row
 #define START_Y 0 			// col
-// #define GOAL_X HEIGHT- 1    // row
-#define GOAL_X 0    // row
-
+#define GOAL_X HEIGHT- 1    // row
 #define GOAL_Y WIDTH - 1	// col 
 
 typedef vector<vector<int>> vec2d_int;
@@ -45,30 +42,39 @@ class Planner : public Map{
 		{ 0, -1}};
 };
 
+
+void sanityCheck();
+void describe(string, bool, vec1d_int, vec2d_int);
+
 // Print function 
 template <typename T>
 void print2DVector(T Vec){
 	for(int i = 0; i < Vec.size(); i++){
 		for(int j = 0; j < Vec[0].size(); j++){
-			cout << Vec[i][j] << ' ';
+			if(Vec[i][j] >= 10 || Vec[i][j] < 0)
+				cout << Vec[i][j] << "  ";
+			else
+				cout << " " << Vec[i][j] << "  ";
 		}
-		cout << "\n";
+		cout << endl;
 	}
 }
 
+// Print function 
 template <typename T>
 void print1DVector(T Vec){
+	cout << "[ ";
 	for(auto i : Vec)
 		cout << i << " ";
-	cout << "\n";
+	cout << "]\n";
 }
 
+// Check if node == goal 
 bool isGoal(int x, int y){
-	return (x==GOAL_X) && (y==GOAL_Y);
+	return (x == GOAL_X) && (y == GOAL_Y);
 }
 
-
-// Check if node is valid 
+// Check if node == valid 
 bool isValid(int x, int y, vec2d_int &grid){
 	bool isX 	= x < HEIGHT && x >= 0 	  ? true : false;
 	bool isY 	= y < WIDTH  && y >= 0	  ? true : false;
@@ -97,63 +103,50 @@ bool isOpen(vec1d_int &test, vec2d_int &list){
 	return false;
 }
 
-
-void describe(string action, bool verbose, vec1d_int node, vec2d_int list){
-	if(!verbose){return;}
-	if(action == "isOpen"){
-		cout << "Node already open. Skipping: " << endl;
-		print1DVector(node);
+vec2d_int makeExpansionList(vec2d_int map){
+	for(int i = 0; i < map.size(); i++){
+		for(int j = 0; j < map[0].size(); j++){
+			// if(map[i][j] == 1){
+				map[i][j] = -1;
+			// }
+		}
 	}
-
-	if("invalid"){
-		cout << "Invalid Node" << endl;
-		print1DVector(node);
-	}
-
-	if(action == "close"){
-		cout << "Closing current Node" << endl;
-		print1DVector(node);		
-	}
-
-	if(action == "map"){
-		cout << "Explored Map: " << endl;
-		print2DVector(list);
-	}
-
-	if("openList"){
-		cout << "\nOpen list: " << endl;
-		print2DVector(list);
-		cout << "============================" << endl;
-
-	}
+	return map; 
 }
 
-
-// Search & Expansion function 
+// Search function 
 void search(Map map, Planner planner, bool verbose){
 	auto closedList = map.grid; 
+	auto expansionList = makeExpansionList(map.grid);
 	int x = planner.start[0];
 	int y = planner.start[1];
 	int g = 0; // cost of edge
 	int x_curr, y_curr, g_curr;
 	int x_next, y_next, g_next;
+	int expand = 0;
 
 	vec1d_int openNode = {g, x, y}; 
 	vec2d_int openList;
+
+	// dummy node and list
+	vec1d_int dummyNode;
+	vec2d_int dummyList;
 	// Add the first open node-> start 
 	openList.push_back(openNode);
-	cout << "Starting @ node:" << endl; 
-	print1DVector(openNode);
+
+	describe("start", verbose, openNode, dummyList);
 
 	bool isFound = false;
 	bool isOver = false;
-
+	int count = 0;
 	while(!isFound && !isOver){
 
-		cout << "Open list: " << endl;
-		print2DVector(openList);
-		cout << "============================" << endl;
-		// describe("openList", verbose, openNode, openList);
+		if(verbose){
+			cout << "Iteration: " << ++count << endl;
+			cout << "==================================" << endl;
+		}
+
+		describe("openList", verbose, dummyNode, openList);
 
 		// Check if any openNodes ? explore : exit
 		if(openList.size() == 0){
@@ -163,11 +156,15 @@ void search(Map map, Planner planner, bool verbose){
 
 		/*
 			Expansion strategy 
+			------------------------------------
 			Sort the openList prioritizing g
-			Pick the node with lowest g  
+			*Pick the node with lowest g  
 				Check if goal? exit : continue
 				Expand for related nodes (children)
+				Add valid nodes to open list 
+				Go to * 
 		*/	
+
 		else{
 			// Get cheapest node 
 			sort(openList.begin(), openList.end());
@@ -180,6 +177,9 @@ void search(Map map, Planner planner, bool verbose){
 			x_curr = currNode[1];
 			y_curr = currNode[2];
 
+			// Mark 
+			expansionList[x_curr][y_curr] = expand++;
+			describe("expand", verbose, dummyNode, expansionList);
 			// Check if newNode == Goal node 
 			if(isGoal(x_curr, y_curr)){
 				isFound = true;
@@ -189,11 +189,9 @@ void search(Map map, Planner planner, bool verbose){
 
 			// Expand related nodes 
 			else{
-				cout << "Exploring current node: " << endl;
-				print1DVector(currNode);
 
-				cout << "Explored Map: " << endl;
-				print2DVector(closedList);
+				describe("map", verbose, dummyNode, closedList);
+
 				
 				for(auto move : planner.movements){
 					x_next = x_curr + move[0];
@@ -207,50 +205,36 @@ void search(Map map, Planner planner, bool verbose){
 
 						// Check if already opened 
 						if(!isOpen(openNode, openList)){
-							cout << "Adding node: " << endl;
 							openList.push_back(openNode);
-							print1DVector(openNode);
+							describe("add", verbose, openNode, openList);
 						}
-
 						// If already open skip
-						else{
-							cout << "Node already open, skipping: " << endl;
-							print1DVector(openNode);
-						}
+						else describe("open", verbose, openNode, openList);
 					}
 
 					else{
-						cout << "Invalid node:" << endl;
-						vec1d_int invalid = {-1, x_next, y_next};
-						print1DVector(invalid);
+						dummyNode = {-1, x_next, y_next};
+						describe("invalid", verbose, dummyNode, dummyList);
 					}			
 				}
 				
-				cout << "Closing current node:" << endl;
 				// Mark current explored node closed 
 				closedList[x_curr][y_curr] = 8;
-				print1DVector(currNode);
-				cout << "----------------------------" << endl << endl;
-
-
-
+				describe("close", verbose, currNode, dummyList);
 			}
 		}
-	}
+	} 
 }
-
-
-void sanityCheck();
 
 int main()
 {
-	// sanityCheck();
-	Map map;
+	Map map; 
 	Planner planner;
 	bool verbose = false;
 	cout << "Verbose search?: ";
 	cin >> verbose; 
 	search(map, planner, verbose);
+	if(verbose) cout << "\n[-1] Nodes were never expanded" << endl;
     return 0;
 }
 
@@ -277,5 +261,58 @@ void sanityCheck(){
     	 << endl;
     cout << "Delta:" << endl;
     print2DVector(planner.movements);
+}
 
+void describe(string action, bool verbose, vec1d_int node, vec2d_int list){
+	if(!verbose){return;}
+	if(action == "isOpen"){
+		cout << "Node already open. Skipping: " << endl;
+		print1DVector(node);
+	}
+
+	if(action == "invalid"){
+		cout << "Invalid Node:         ";
+		print1DVector(node);
+	}
+
+	if(action == "close"){
+		cout << "Closing Current Node: ";
+		print1DVector(node);	
+		cout << "\n==================================" << endl;
+	}
+
+	if(action == "map"){
+		cout << "Current Node: ";
+		print1DVector(node);
+		cout << "Explored Map: " << endl;
+		print2DVector(list);
+		cout << endl;
+	}
+
+	if(action == "expand"){
+		cout << "Expansion List: " << endl;
+		print2DVector(list);
+		cout << endl;
+	}
+
+	if(action == "openList"){
+		cout << "Open list: " << endl;
+		print2DVector(list);
+		cout << "----------------------------------" << endl;
+
+	}
+	if(action == "start"){
+		cout << "Start Node: ";
+		print1DVector(node);
+	}
+
+	if(action == "start"){
+		cout << "Goal Node: "; 
+		vec1d_int goal = {-1, GOAL_X, GOAL_Y};
+		print1DVector(goal);
+	}
+	if(action == "add"){
+		cout << "Adding Node:\t      ";
+		print1DVector(node);
+	}
 }

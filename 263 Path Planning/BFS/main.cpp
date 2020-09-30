@@ -13,11 +13,13 @@ using namespace std;
 
 typedef vector<vector<int>> vec2d_int;
 typedef vector<int> vec1d_int;
+typedef vector<vector<char>> vec2d_char;
+typedef vector<char> vec1d_char;
 
 class Map{
 	public:
-	int mapWidth = HEIGHT;
-	int mapHeight = WIDTH;
+	const static int mapWidth = WIDTH;
+	const static int mapHeight = HEIGHT;
 	vector<vector<int>> grid={
 	   // v start
         { 0, 1, 0, 0, 0, 0 },
@@ -32,9 +34,9 @@ class Map{
 class Planner : public Map{
 	public:
 	int start[2] = {START_X, START_Y};
-	int goal[2] = {mapHeight - 1, mapWidth - 1};
+	int goal[2] = {GOAL_X, GOAL_Y};
 	int cost = 1;
-	string movements_arrows[4] = {"^", ">", "v", "<"};
+	char movements_arrows[4] = {'^', '>', 'v', '<'};
 	vec2d_int movements = {
 		{-1, 0},
 		{ 0, 1},
@@ -47,14 +49,23 @@ void sanityCheck();
 void describe(string, bool, vec1d_int, vec2d_int);
 
 // Print function 
-template <typename T>
-void print2DVector(T Vec){
+void print2DVector(vec2d_int &Vec){
 	for(int i = 0; i < Vec.size(); i++){
 		for(int j = 0; j < Vec[0].size(); j++){
 			if(Vec[i][j] >= 10 || Vec[i][j] < 0)
 				cout << Vec[i][j] << "  ";
 			else
 				cout << " " << Vec[i][j] << "  ";
+		}
+		cout << endl;
+	}
+}
+
+// Overloaded for policy grid
+void print2DVector(vec2d_char &Vec){
+	for(int i = 0; i < Vec.size(); i++){
+		for(int j = 0; j < Vec[i].size(); j++){
+			cout << " " << Vec[i][j] << "  ";
 		}
 		cout << endl;
 	}
@@ -103,34 +114,65 @@ bool isOpen(vec1d_int &test, vec2d_int &list){
 	return false;
 }
 
-vec2d_int makeExpansionList(vec2d_int map){
-	for(int i = 0; i < map.size(); i++){
-		for(int j = 0; j < map[0].size(); j++){
-			// if(map[i][j] == 1){
-				map[i][j] = -1;
-			// }
-		}
+// Given goal & action vector
+vec2d_char getPolicy(vec2d_int actions, Planner planner){
+	vec2d_char policy(actions.size(), vec1d_char(actions[0].size(), '-'));
+
+	// Travel backwards 
+	int to_x = planner.goal[0];
+	int to_y = planner.goal[1];
+	int from_x, from_y;
+	
+	while(!(to_x == planner.start[0] && to_y == planner.start[1])){
+		// Take a step back 
+		// The action that led to current map loc 
+		int action = actions[to_x][to_y]; 
+		from_x = to_x - planner.movements[action][0];
+		from_y = to_y - planner.movements[action][1];
+
+		// Forward policy 
+		policy[from_x][from_y] = planner.movements_arrows[action];
+
+		// Repeat
+		to_x = from_x;
+		to_y = from_y;
 	}
-	return map; 
+
+	// Mark start & goal
+	policy[planner.goal[0]][planner.goal[1]] 	= 'g';
+	policy[planner.start[0]][planner.start[1]] 	= 's';
+
+	return policy;
 }
 
 // Search function 
 void search(Map map, Planner planner, bool verbose){
-	auto closedList = map.grid; 
-	auto expansionList = makeExpansionList(map.grid);
+
+	// home node 
 	int x = planner.start[0];
 	int y = planner.start[1];
 	int g = 0; // cost of edge
-	int x_curr, y_curr, g_curr;
-	int x_next, y_next, g_next;
-	int expand = 0;
-
 	vec1d_int openNode = {g, x, y}; 
+
+	// x_t
+	int x_curr, y_curr, g_curr;
+	// x_t+1 = x_t + u_t+1
+	int x_next, y_next, g_next;
+
+	// to be explored
 	vec2d_int openList;
+
+	// to mark explored nodes - 8 
+	auto closedList = map.grid; 
+
+	// to mark expanded nodes !(-1)
+	vec2d_int expansionList(map.mapHeight, vector<int>(map.mapWidth, -1));
+	int expand = 0;
 
 	// dummy node and list
 	vec1d_int dummyNode;
 	vec2d_int dummyList;
+
 	// Add the first open node-> start 
 	openList.push_back(openNode);
 
@@ -138,15 +180,17 @@ void search(Map map, Planner planner, bool verbose){
 
 	bool isFound = false;
 	bool isOver = false;
-	int count = 0;
-	while(!isFound && !isOver){
+	int count = 0; // iteration 
 
+	// For solution - actions and policy vector 
+	vec2d_int actions(map.mapHeight, vector<int>(map.mapWidth, -1));
+	// vec2d_char policy(map.mapHeight, vector<char>(map.mapWidth, '*'));
+
+	while(!isFound && !isOver){
 		if(verbose){
-			cout << "Iteration: " << ++count << endl;
+			cout << "Iteration: " << count++ << endl;
 			cout << "==================================" << endl;
 		}
-
-		describe("openList", verbose, dummyNode, openList);
 
 		// Check if any openNodes ? explore : exit
 		if(openList.size() == 0){
@@ -166,9 +210,11 @@ void search(Map map, Planner planner, bool verbose){
 		*/	
 
 		else{
-			// Get cheapest node 
+			// Arrange nodes wrt cost of traversal
 			sort(openList.begin(), openList.end());
 			reverse(openList.begin(), openList.end());
+			describe("openList", verbose, dummyNode, openList);
+			// Get the cheapest node 
 			vec1d_int currNode = openList.back();
 			openList.pop_back();
 
@@ -177,9 +223,10 @@ void search(Map map, Planner planner, bool verbose){
 			x_curr = currNode[1];
 			y_curr = currNode[2];
 
-			// Mark 
+			// Mark step count on the current node
 			expansionList[x_curr][y_curr] = expand++;
 			describe("expand", verbose, dummyNode, expansionList);
+
 			// Check if newNode == Goal node 
 			if(isGoal(x_curr, y_curr)){
 				isFound = true;
@@ -187,19 +234,18 @@ void search(Map map, Planner planner, bool verbose){
 				cout << "[g: " << g_curr << ", x: " << x_curr << ", y: " << y_curr << " ]\n";
 			}
 
-			// Expand related nodes 
+			// if not Goal expand related nodes 
 			else{
 
-				describe("map", verbose, dummyNode, closedList);
-
-				
-				for(auto move : planner.movements){
-					x_next = x_curr + move[0];
-					y_next = y_curr + move[1];
-
+				describe("map", verbose, currNode, closedList);
+				// for(auto move : planner.movements){ // u_t+1
+				for(int i = 0; i < planner.movements.size(); i++){
+					x_next = x_curr + planner.movements[i][0];
+					y_next = y_curr + planner.movements[i][1];
 					// Check if valid 
 					if(isValid(x_next, y_next, closedList)){
-						
+						// Action that lead you to map[x_next][y_next]
+						actions[x_next][y_next] = i;
 						g_next = g_curr + planner.cost;
 						openNode = {g_next, x_next, y_next};
 
@@ -208,10 +254,11 @@ void search(Map map, Planner planner, bool verbose){
 							openList.push_back(openNode);
 							describe("add", verbose, openNode, openList);
 						}
-						// If already open skip
+						// If already open, then skip
 						else describe("open", verbose, openNode, openList);
 					}
 
+					// If not valid
 					else{
 						dummyNode = {-1, x_next, y_next};
 						describe("invalid", verbose, dummyNode, dummyList);
@@ -223,7 +270,19 @@ void search(Map map, Planner planner, bool verbose){
 				describe("close", verbose, currNode, dummyList);
 			}
 		}
-	} 
+	}
+
+	// Print final solution 
+	if(verbose) cout << "[-1] Nodes were never expanded" << endl;
+	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+	cout << "Action Vector: " << endl;
+	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+	print2DVector(actions); 
+	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+	auto policy = getPolicy(actions, planner);
+	cout << "Policy Vector: " << endl;
+	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+	print2DVector(policy);
 }
 
 int main()
@@ -234,7 +293,6 @@ int main()
 	cout << "Verbose search?: ";
 	cin >> verbose; 
 	search(map, planner, verbose);
-	if(verbose) cout << "\n[-1] Nodes were never expanded" << endl;
     return 0;
 }
 

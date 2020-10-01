@@ -184,7 +184,6 @@ void search(Map map, Planner planner, bool verbose){
 
 	// For solution - actions and policy vector 
 	vec2d_int actions(map.mapHeight, vector<int>(map.mapWidth, -1));
-	// vec2d_char policy(map.mapHeight, vector<char>(map.mapWidth, '*'));
 
 	while(!isFound && !isOver){
 		if(verbose){
@@ -216,6 +215,7 @@ void search(Map map, Planner planner, bool verbose){
 			describe("openList", verbose, dummyNode, openList);
 			// Get the cheapest node 
 			vec1d_int currNode = openList.back();
+			// Remove it from the open list
 			openList.pop_back();
 
 			// Explore current node 
@@ -244,13 +244,13 @@ void search(Map map, Planner planner, bool verbose){
 					y_next = y_curr + planner.movements[i][1];
 					// Check if valid 
 					if(isValid(x_next, y_next, closedList)){
-						// Action that lead you to map[x_next][y_next]
-						actions[x_next][y_next] = i;
 						g_next = g_curr + planner.cost;
 						openNode = {g_next, x_next, y_next};
 
 						// Check if already opened 
 						if(!isOpen(openNode, openList)){
+							// Action that lead you to map[x_next][y_next]
+							actions[x_next][y_next] = i;
 							openList.push_back(openNode);
 							describe("add", verbose, openNode, openList);
 						}
@@ -273,11 +273,14 @@ void search(Map map, Planner planner, bool verbose){
 	}
 
 	// Print final solution 
-	if(verbose) cout << "[-1] Nodes were never expanded" << endl;
-	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
-	cout << "Action Vector: " << endl;
-	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
-	print2DVector(actions); 
+	if(verbose){
+		cout << "[-1] Nodes were never expanded" << endl;
+		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+		cout << "Action Vector: " << endl;
+		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+		print2DVector(actions); 
+	}
+	
 	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 	auto policy = getPolicy(actions, planner);
 	cout << "Policy Vector: " << endl;

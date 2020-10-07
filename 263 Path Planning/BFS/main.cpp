@@ -9,7 +9,7 @@ using namespace std;
 #define START_X 0 			// row
 #define START_Y 0 			// col
 #define GOAL_X HEIGHT- 1    // row
-#define GOAL_Y WIDTH - 1	// col 
+#define GOAL_Y WIDTH - 1	// col
 
 typedef vector<vector<int>> vec2d_int;
 typedef vector<int> vec1d_int;
@@ -186,8 +186,10 @@ void search(Map map, Planner planner, bool verbose){
 	vec2d_int actions(map.mapHeight, vector<int>(map.mapWidth, -1));
 
 	while(!isFound && !isOver){
+		++count;
 		if(verbose){
-			cout << "Iteration: " << count++ << endl;
+			cout << "\n==================================" << endl;
+			cout << "Iteration: " << count << endl;
 			cout << "==================================" << endl;
 		}
 
@@ -228,6 +230,7 @@ void search(Map map, Planner planner, bool verbose){
 
 			// Mark step count on the current node
 			expansionList[x_curr][y_curr] = expand++;
+			describe("map", verbose, currNode, closedList);
 			describe("expand", verbose, dummyNode, expansionList);
 
 			// Check if newNode == Goal node 
@@ -240,7 +243,6 @@ void search(Map map, Planner planner, bool verbose){
 			// if not Goal expand related nodes 
 			else{
 
-				describe("map", verbose, currNode, closedList);
 				for(int i = 0; i < planner.movements.size(); i++){
 					x_next = x_curr + planner.movements[i][0];
 					y_next = y_curr + planner.movements[i][1];
@@ -257,6 +259,7 @@ void search(Map map, Planner planner, bool verbose){
 							actions[x_next][y_next] = i;
 							openList.push_back(openNode);
 							describe("add", verbose, openNode, openList);
+
 						}
 
 						// If already open, then skip
@@ -280,7 +283,7 @@ void search(Map map, Planner planner, bool verbose){
 
 	// Print final solution 
 	if(verbose){
-		cout << "[-1] Nodes were never expanded" << endl;
+		cout << "[-1] Nodes were never expanded" << endl << endl;
 		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 		cout << "Action Vector: " << endl;
 		cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
@@ -292,6 +295,8 @@ void search(Map map, Planner planner, bool verbose){
 	cout << "Policy Vector: " << endl;
 	cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 	print2DVector(policy);
+	cout << "Number of iterations: " << count << endl;
+
 }
 
 int main()
@@ -345,19 +350,19 @@ void describe(string action, bool verbose, vec1d_int node, vec2d_int list){
 	if(action == "close"){
 		cout << "Closing Current Node: ";
 		print1DVector(node);	
-		cout << "\n==================================" << endl;
 	}
 
 	if(action == "map"){
-		cout << "Current Node: ";
-		print1DVector(node);
+		cout << endl;
 		cout << "Explored Map: " << endl;
 		print2DVector(list);
+		cout << "\nCurrent Node: ";
+		print1DVector(node);
 		cout << endl;
 	}
 
 	if(action == "expand"){
-		cout << "Expansion List: " << endl;
+		cout << "Expansion footprint: " << endl;
 		print2DVector(list);
 		cout << endl;
 	}
@@ -369,7 +374,7 @@ void describe(string action, bool verbose, vec1d_int node, vec2d_int list){
 
 	}
 	if(action == "start"){
-		cout << "Start Node: ";
+		cout << "\nStart Node: ";
 		print1DVector(node);
 	}
 

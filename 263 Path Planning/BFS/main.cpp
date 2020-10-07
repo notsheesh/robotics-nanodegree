@@ -209,12 +209,15 @@ void search(Map map, Planner planner, bool verbose){
 		*/	
 
 		else{
+			
 			// Arrange nodes wrt cost of traversal
 			sort(openList.begin(), openList.end());
 			reverse(openList.begin(), openList.end());
 			describe("openList", verbose, dummyNode, openList);
+
 			// Get the cheapest node 
 			vec1d_int currNode = openList.back();
+			
 			// Remove it from the open list
 			openList.pop_back();
 
@@ -238,10 +241,10 @@ void search(Map map, Planner planner, bool verbose){
 			else{
 
 				describe("map", verbose, currNode, closedList);
-				// for(auto move : planner.movements){ // u_t+1
 				for(int i = 0; i < planner.movements.size(); i++){
 					x_next = x_curr + planner.movements[i][0];
 					y_next = y_curr + planner.movements[i][1];
+
 					// Check if valid 
 					if(isValid(x_next, y_next, closedList)){
 						g_next = g_curr + planner.cost;
@@ -249,26 +252,29 @@ void search(Map map, Planner planner, bool verbose){
 
 						// Check if already opened 
 						if(!isOpen(openNode, openList)){
+
 							// Action that lead you to map[x_next][y_next]
 							actions[x_next][y_next] = i;
 							openList.push_back(openNode);
 							describe("add", verbose, openNode, openList);
 						}
+
 						// If already open, then skip
 						else describe("open", verbose, openNode, openList);
 					}
 
 					// If not valid
 					else{
+
 						dummyNode = {-1, x_next, y_next};
 						describe("invalid", verbose, dummyNode, dummyList);
 					}			
 				}
-				
-				// Mark current explored node closed 
-				closedList[x_curr][y_curr] = 8;
-				describe("close", verbose, currNode, dummyList);
 			}
+
+			// Mark current explored node closed 
+			closedList[x_curr][y_curr] = 8;
+			describe("close", verbose, currNode, dummyList);
 		}
 	}
 

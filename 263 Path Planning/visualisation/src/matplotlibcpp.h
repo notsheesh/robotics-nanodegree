@@ -1022,4 +1022,3 @@ namespace matplotlibcpp {
 #endif
 
 }
-
